@@ -130,5 +130,5 @@ dmypy.json
 
 # VS Code Extensions
 .history
-.DStore
+.DS_Store
 .vscode
