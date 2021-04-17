@@ -2,6 +2,7 @@ import sys
 from flask import Blueprint, request, jsonify, session
 from app.models import User, Post, Comment, Vote
 from app.db import get_db
+from app.utils.auth import login_required
 
 bp = Blueprint('api', __name__, url_prefix='/api')
 
@@ -22,42 +23,41 @@ def signup():
     db.commit()
   except:
     print(sys.exc_info()[0])
-    # insert failed, so rollback and send error to front end
-    db.rollback()
-    session.clear()
-    session['user_id'] = newUser.id
-    session['loggedIn'] = True
-    return jsonify(message = 'Signup failed'), 500
+  # insert failed, so rollback and send error to front end
+  db.rollback()
+  session.clear()
+  session['user_id'] = newUser.id
+  session['loggedIn'] = True
 
-  return jsonify(id = newUser.id)
+  return jsonify(message = 'Signup failed'), 500
 
-  @bp.route('/users/logout', methods=['POST'])
-  def logout():
-    # remove session variables
-    session.clear()
-    return '', 204
+  # return jsonify(id = newUser.id)
 
-  @bp.route('/users/login', methods=['POST'])
-  def login():
-    data = request.get_json()
-    db = get_db()
+@bp.route('/users/logout', methods=['POST'])
+def logout():
+  # remove session variables
+  session.clear()
+  return '', 204
 
-    try:
-      user = db.query(User).filter(User.email == data['email']).one()
-    except:
-      print(sys.exc_info()[0])
-    if user.verify_password(data['password']) == False:
-      return jsonify(message = 'Incorrect credentials'), 400
-
-    # return jsonify(message = 'Incorrect credentials'), 400
-
-    session.clear()
-    session['user_id'] = user.id
-    session['loggedIn'] = True
-
-    return jsonify(id = user.id)
+@bp.route('/users/login', methods=['POST'])
+def login():
+  data = request.get_json()
+  db = get_db()
+  try:
+    user = db.query(User).filter(User.email == data['email']).one()
+  except:
+    print(sys.exc_info()[0])
+  if user.verify_password(data['password']) == False:
+    return jsonify(message = 'Incorrect credentials'), 400
+  # return jsonify(message = 'Incorrect credentials'), 400
+  session.clear()
+  session['user_id'] = user.id
+  session['loggedIn'] = True
+  
+  return jsonify(id = user.id)
 
 @bp.route('/comments', methods=['POST'])
+@login_required
 def comment():
   data = request.get_json()
   db = get_db()
@@ -81,6 +81,7 @@ def comment():
   return jsonify(id = newComment.id)
 
 @bp.route('/posts/upvote', methods=['PUT'])
+@login_required
 def upvote():
   data = request.get_json()
   db = get_db()
@@ -103,6 +104,7 @@ def upvote():
   return '', 204
 
 @bp.route('/posts', methods=['POST'])
+@login_required
 def create():
   data = request.get_json()
   db = get_db()
@@ -126,6 +128,7 @@ def create():
   return jsonify(id = newPost.id)
 
 @bp.route('/posts/<id>', methods=['PUT'])
+@login_required
 def update(id):
   data = request.get_json()
   db = get_db()
@@ -144,6 +147,7 @@ def update(id):
   return '', 204
 
 @bp.route('/posts/<id>', methods=['DELETE'])
+@login_required
 def delete(id):
   db = get_db()
 
